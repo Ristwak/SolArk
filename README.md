@@ -58,16 +58,22 @@ SolArk/
 │   └── UI/
 │       └── Panels, Buttons, Text, etc.
 
-📚 Educational Value
+---
+
+## 📚 Educational Value
 Promotes understanding of solar energy
 
 Encourages eco-conscious thinking
 
 Can be used in schools, events, and awareness campaigns
 
-🧑‍💻 Developers
+---
+
+## 🧑‍💻 Developers
 Made with ❤️ by [Ristwak Pandey]
 Game Design, Logic, and UI Implementation
 
-📝 License
+---
+
+## 📝 License
 This project is licensed under the MIT License. Feel free to modify and use for educational purposes.
