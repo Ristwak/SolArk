@@ -41,6 +41,10 @@ In *SolArk*, players watch a powerful satellite deploy solar rays towards Earth 
 
 4. Build & Run on your preferred platform.
 
+---
+
+## 📁 Folder Structure
+
 SolArk/
 ├── Assets/
 │   ├── Scripts/
