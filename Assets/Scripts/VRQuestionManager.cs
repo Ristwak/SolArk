@@ -4,7 +4,6 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.Video;
 
-
 [System.Serializable]
 public class QuestionData
 {
@@ -33,9 +32,9 @@ public class VRQuestionManager : MonoBehaviour
     public Animator satelliteAnimator;
 
     [Header("Earth Appearance")]
-    public GameObject earthObject;            // Assign the Earth GameObject in Inspector
-    public Texture newEarthTexture;           // Assign the new texture in Inspector
-    public float earthTextureChangeDelay = 3f; // Delay after ray fires
+    public GameObject earthObject;
+    public Texture newEarthTexture;
+    public float earthTextureChangeDelay = 3f;
 
     private List<QuestionData> questions;
     private int currentQuestionIndex = 0;
@@ -45,37 +44,37 @@ public class VRQuestionManager : MonoBehaviour
     private bool animationPlayed = false;
 
     [Header("Ray Settings")]
-    public GameObject rayEffect;         // Assign a LineRenderer or particle beam prefab in Inspector
-    public Transform rayOrigin;         // Satellite emitter position
-    public Transform rayTarget;         // Earth target position
-    public float delayAfterAnimation = 2f; // Seconds after animation before ray fires
-    [SerializeField] private float rayThickness = 0.1f;  // Set this in the Inspector
+    public GameObject rayEffect;
+    public Transform rayOrigin;
+    public Transform rayTarget;
+    public float delayAfterAnimation = 2f;
+    [SerializeField] private float rayThickness = 0.1f;
 
     [Header("End Sequence Panels")]
-    public GameObject videoPanel;      // Assign in Inspector
-    public GameObject exitPanel;       // Assign in Inspector
-    public float postTextureChangeDelay = 2f;  // Delay before video panel shows
+    public GameObject videoPanel;
+    public GameObject exitPanel;
+    public float postTextureChangeDelay = 2f;
 
-    private bool videoFinished = false;
+    [Header("Video")]
+    public VideoClip startvideo;
+    public VideoClip enVideo;
+
+    private VideoPlayer videoPlayer;
 
     void Start()
     {
         LoadQuestionsFromJSON();
         ShuffleQuestions();
 
-        if (questions != null && questions.Count > 0)
-        {
-            ShowQuestion(currentQuestionIndex);
-        }
         if (videoPanel != null)
         {
-            VideoPlayer vp = videoPanel.GetComponentInChildren<VideoPlayer>();
-            if (vp != null)
+            videoPlayer = videoPanel.GetComponentInChildren<VideoPlayer>();
+            if (videoPlayer != null)
             {
-                vp.loopPointReached += OnVideoFinished;
+                videoPlayer.loopPointReached += OnVideoFinished;
+                PlayStartVideo(); // 🔁 Start video plays here
             }
         }
-
 
         timeRemaining = gameDuration;
 
@@ -85,11 +84,8 @@ public class VRQuestionManager : MonoBehaviour
 
     void Update()
     {
-        // Only show the watch if the question panel is active
         if (watchObject != null && questionPanel != null)
-        {
             watchObject.SetActive(questionPanel.activeSelf);
-        }
 
         if (isTimerRunning)
         {
@@ -168,7 +164,7 @@ public class VRQuestionManager : MonoBehaviour
             }
             else
             {
-                optionButtons[i].gameObject.SetActive(false); // hide unused buttons
+                optionButtons[i].gameObject.SetActive(false);
             }
         }
     }
@@ -223,7 +219,6 @@ public class VRQuestionManager : MonoBehaviour
         }
     }
 
-
     void EndQuizDueToTimeout()
     {
         Debug.Log("⏱️ Time's up! Quiz ended.");
@@ -239,7 +234,6 @@ public class VRQuestionManager : MonoBehaviour
             rayEffect.SetActive(true);
             rayEffect.transform.position = rayOrigin.position;
 
-            // If using LineRenderer
             LineRenderer line = rayEffect.GetComponent<LineRenderer>();
             if (line != null)
             {
@@ -250,7 +244,6 @@ public class VRQuestionManager : MonoBehaviour
                 line.SetPosition(1, rayTarget.position);
             }
 
-            // Schedule texture change after delay
             Invoke(nameof(ChangeEarthTexture), earthTextureChangeDelay);
         }
         else
@@ -269,49 +262,56 @@ public class VRQuestionManager : MonoBehaviour
                 renderer.material.mainTexture = newEarthTexture;
                 Debug.Log("🌍 Earth texture changed!");
 
-                Invoke(nameof(ShowVideoPanel), postTextureChangeDelay);
+                Invoke(nameof(ShowEndVideo), postTextureChangeDelay);
             }
-            else
-            {
-                Debug.LogWarning("Renderer not found on Earth object.");
-            }
-        }
-        else
-        {
-            Debug.LogWarning("Earth object or new texture not assigned.");
         }
     }
 
-    void ShowVideoPanel()
+    void ShowEndVideo()
     {
-        Debug.Log("🎞 Showing video panel...");
+        Debug.Log("🎞 Showing end video...");
 
-        // Disable visual elements
         if (watchObject) watchObject.SetActive(false);
         if (rayEffect) rayEffect.SetActive(false);
         if (questionPanel) questionPanel.SetActive(false);
 
-        // Show video panel
-        if (videoPanel) videoPanel.SetActive(true);
+        if (videoPanel && videoPlayer != null && enVideo != null)
+        {
+            videoPanel.SetActive(true);
+            videoPlayer.clip = enVideo;
+            videoPlayer.Play();
+        }
     }
 
-    void DisableRayEffect()
+    void PlayStartVideo()
     {
-        if (rayEffect != null)
-            rayEffect.SetActive(false);
+        if (videoPanel && videoPlayer != null && startvideo != null)
+        {
+            videoPanel.SetActive(true);
+            videoPlayer.clip = startvideo;
+            videoPlayer.Play();
+        }
+    }
+
+    public void SkipVideo()
+    {
+        Debug.Log("⏩ Video skipped.");
+
+        if (videoPlayer != null)
+        {
+            videoPlayer.Stop();
+            OnVideoFinished(videoPlayer); // Manually trigger the finish handler
+        }
     }
 
     void OnVideoFinished(VideoPlayer vp)
     {
         Debug.Log("📽️ Video finished. Showing exit panel.");
+
         if (exitPanel != null)
-        {
             exitPanel.SetActive(true);
-        }
 
         if (videoPanel != null)
-        {
             videoPanel.SetActive(false);
-        }
     }
 }

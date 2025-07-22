@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 
 public class GameManager : MonoBehaviour
@@ -71,6 +72,11 @@ public class GameManager : MonoBehaviour
     public void OnExitButton()
     {
         Application.Quit();
+    }
+
+    public void OnRestartButton()
+    {
+        SceneManager.LoadScene("SolArk");
     }
 
     public void OnSkipVideo()
