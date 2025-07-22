@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.Video;
 
 [System.Serializable]
 public class QuestionData
@@ -31,11 +30,6 @@ public class VRQuestionManager : MonoBehaviour
     public GameObject questionPanel;
     public Animator satelliteAnimator;
 
-    [Header("Earth Appearance")]
-    public GameObject earthObject;
-    public Texture newEarthTexture;
-    public float earthTextureChangeDelay = 3f;
-
     private List<QuestionData> questions;
     private int currentQuestionIndex = 0;
     private float timeRemaining;
@@ -43,39 +37,11 @@ public class VRQuestionManager : MonoBehaviour
     private int correctAnswers = 0;
     private bool animationPlayed = false;
 
-    [Header("Ray Settings")]
-    public GameObject rayEffect;
-    public Transform rayOrigin;
-    public Transform rayTarget;
-    public float delayAfterAnimation = 2f;
-    [SerializeField] private float rayThickness = 0.1f;
-
-    [Header("End Sequence Panels")]
-    public GameObject videoPanel;
-    public GameObject exitPanel;
-    public float postTextureChangeDelay = 2f;
-
-    [Header("Video")]
-    public VideoClip startvideo;
-    public VideoClip enVideo;
-
-    private VideoPlayer videoPlayer;
-
     void Start()
     {
         LoadQuestionsFromJSON();
         ShuffleQuestions();
-
-        if (videoPanel != null)
-        {
-            videoPlayer = videoPanel.GetComponentInChildren<VideoPlayer>();
-            if (videoPlayer != null)
-            {
-                videoPlayer.loopPointReached += OnVideoFinished;
-                PlayStartVideo(); // 🔁 Start video plays here
-            }
-        }
-
+        ShowQuestion(currentQuestionIndex);
         timeRemaining = gameDuration;
 
         if (watchObject != null)
@@ -85,7 +51,9 @@ public class VRQuestionManager : MonoBehaviour
     void Update()
     {
         if (watchObject != null && questionPanel != null)
+        {
             watchObject.SetActive(questionPanel.activeSelf);
+        }
 
         if (isTimerRunning)
         {
@@ -111,7 +79,7 @@ public class VRQuestionManager : MonoBehaviour
         int seconds = Mathf.FloorToInt(time % 60f);
         if (watchTimerText != null)
         {
-            watchTimerText.text = $"{minutes:00}:{seconds:00}";
+            watchTimerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
         }
     }
 
@@ -131,8 +99,7 @@ public class VRQuestionManager : MonoBehaviour
 
     void ShuffleQuestions()
     {
-        if (questions == null || questions.Count <= 1) return;
-
+        // Fisher-Yates Shuffle
         for (int i = 0; i < questions.Count; i++)
         {
             int rand = Random.Range(i, questions.Count);
@@ -144,7 +111,8 @@ public class VRQuestionManager : MonoBehaviour
 
     void ShowQuestion(int index)
     {
-        if (questions == null || index >= questions.Count) return;
+        if (questions == null || index >= questions.Count)
+            return;
 
         var question = questions[index];
         questionText.text = question.question;
@@ -152,20 +120,11 @@ public class VRQuestionManager : MonoBehaviour
         for (int i = 0; i < optionButtons.Count; i++)
         {
             TMP_Text btnText = optionButtons[i].GetComponentInChildren<TMP_Text>();
+            btnText.text = question.options[i];
 
-            if (i < question.options.Count)
-            {
-                btnText.text = question.options[i];
-                optionButtons[i].gameObject.SetActive(true);
-
-                int choiceIndex = i;
-                optionButtons[i].onClick.RemoveAllListeners();
-                optionButtons[i].onClick.AddListener(() => CheckAnswer(choiceIndex));
-            }
-            else
-            {
-                optionButtons[i].gameObject.SetActive(false);
-            }
+            int choiceIndex = i;
+            optionButtons[i].onClick.RemoveAllListeners();
+            optionButtons[i].onClick.AddListener(() => CheckAnswer(choiceIndex));
         }
     }
 
@@ -191,7 +150,6 @@ public class VRQuestionManager : MonoBehaviour
         }
 
         currentQuestionIndex++;
-
         if (currentQuestionIndex < questions.Count)
         {
             ShowQuestion(currentQuestionIndex);
@@ -209,9 +167,8 @@ public class VRQuestionManager : MonoBehaviour
 
         if (satelliteAnimator != null)
         {
-            questionPanel.SetActive(false);
+            Debug.Log("🚀 Playing satellite animation...");
             satelliteAnimator.Play("OpenAnimation");
-            Invoke(nameof(FireRayToEarth), delayAfterAnimation);
         }
         else
         {
@@ -222,96 +179,5 @@ public class VRQuestionManager : MonoBehaviour
     void EndQuizDueToTimeout()
     {
         Debug.Log("⏱️ Time's up! Quiz ended.");
-        questionPanel.SetActive(false);
-    }
-
-    void FireRayToEarth()
-    {
-        Debug.Log("🔭 Firing ray from satellite to Earth!");
-
-        if (rayEffect != null && rayOrigin != null && rayTarget != null)
-        {
-            rayEffect.SetActive(true);
-            rayEffect.transform.position = rayOrigin.position;
-
-            LineRenderer line = rayEffect.GetComponent<LineRenderer>();
-            if (line != null)
-            {
-                line.startWidth = rayThickness;
-                line.endWidth = rayThickness;
-
-                line.SetPosition(0, rayOrigin.position);
-                line.SetPosition(1, rayTarget.position);
-            }
-
-            Invoke(nameof(ChangeEarthTexture), earthTextureChangeDelay);
-        }
-        else
-        {
-            Debug.LogWarning("Ray Effect or its positions not assigned.");
-        }
-    }
-
-    void ChangeEarthTexture()
-    {
-        if (earthObject != null && newEarthTexture != null)
-        {
-            Renderer renderer = earthObject.GetComponent<Renderer>();
-            if (renderer != null)
-            {
-                renderer.material.mainTexture = newEarthTexture;
-                Debug.Log("🌍 Earth texture changed!");
-
-                Invoke(nameof(ShowEndVideo), postTextureChangeDelay);
-            }
-        }
-    }
-
-    void ShowEndVideo()
-    {
-        Debug.Log("🎞 Showing end video...");
-
-        if (watchObject) watchObject.SetActive(false);
-        if (rayEffect) rayEffect.SetActive(false);
-        if (questionPanel) questionPanel.SetActive(false);
-
-        if (videoPanel && videoPlayer != null && enVideo != null)
-        {
-            videoPanel.SetActive(true);
-            videoPlayer.clip = enVideo;
-            videoPlayer.Play();
-        }
-    }
-
-    void PlayStartVideo()
-    {
-        if (videoPanel && videoPlayer != null && startvideo != null)
-        {
-            videoPanel.SetActive(true);
-            videoPlayer.clip = startvideo;
-            videoPlayer.Play();
-        }
-    }
-
-    public void SkipVideo()
-    {
-        Debug.Log("⏩ Video skipped.");
-
-        if (videoPlayer != null)
-        {
-            videoPlayer.Stop();
-            OnVideoFinished(videoPlayer); // Manually trigger the finish handler
-        }
-    }
-
-    void OnVideoFinished(VideoPlayer vp)
-    {
-        Debug.Log("📽️ Video finished. Showing exit panel.");
-
-        if (exitPanel != null)
-            exitPanel.SetActive(true);
-
-        if (videoPanel != null)
-            videoPanel.SetActive(false);
     }
 }
