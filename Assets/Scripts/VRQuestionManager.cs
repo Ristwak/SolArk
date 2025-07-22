@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 
 [System.Serializable]
 public class QuestionData
@@ -25,10 +26,24 @@ public class VRQuestionManager : MonoBehaviour
     public TMP_Text watchTimerText;
     public GameObject watchObject;
 
+    [Header("Earth Texture Swap")]
+    public Renderer earthRenderer;
+    public Texture newEarthTexture;
+    public GameObject exitPanel;
+    public GameManager gameManager;
+
     [Header("Game Settings")]
     public float gameDuration = 300f;
     public GameObject questionPanel;
     public Animator satelliteAnimator;
+
+    [Header("Laser Settings")]
+    public GameObject laserBeam;
+    public Transform satelliteOrigin;
+    public Transform earthTarget;
+    public float laserDelay = 7f;
+    public float laserDuration = 3f;
+    public float laserWidth = 0.1f;
 
     private List<QuestionData> questions;
     private int currentQuestionIndex = 0;
@@ -169,10 +184,72 @@ public class VRQuestionManager : MonoBehaviour
         {
             Debug.Log("🚀 Playing satellite animation...");
             satelliteAnimator.Play("OpenAnimation");
+            StartCoroutine(WaitForAnimationThenFireLaser());
         }
         else
         {
             Debug.LogWarning("Satellite Animator not assigned!");
+        }
+    }
+
+    IEnumerator WaitForAnimationThenFireLaser()
+    {
+        float animationLength = 3.5f;
+        yield return new WaitForSeconds(animationLength + laserDelay);
+
+        FireLaser();
+
+        yield return new WaitForSeconds(laserDuration); // wait for laser to finish
+
+        if (earthRenderer != null && newEarthTexture != null)
+        {
+            Debug.Log("🌍 Earth texture changing...");
+            earthRenderer.material.mainTexture = newEarthTexture;
+        }
+
+        yield return new WaitForSeconds(1f); // short delay before video
+
+        // 🎥 Play final video
+        if (gameManager != null)
+        {
+            gameManager.PlayEndVideo();
+        }
+    }
+
+    void FireLaser()
+    {
+        if (laserBeam != null && satelliteOrigin != null && earthTarget != null)
+        {
+            LineRenderer line = laserBeam.GetComponent<LineRenderer>();
+            laserBeam.SetActive(true);
+            line.startWidth = laserWidth;
+            line.endWidth = laserWidth;
+            line.SetPosition(0, satelliteOrigin.position);
+            line.SetPosition(1, earthTarget.position);
+
+            Debug.Log("🔫 Laser fired!");
+
+            // Delay texture change to simulate "impact"
+            StartCoroutine(ChangeEarthTextureAfterImpact());
+        }
+        else
+        {
+            Debug.LogWarning("❌ Laser or origin/target not assigned.");
+        }
+    }
+
+    IEnumerator ChangeEarthTextureAfterImpact()
+    {
+        yield return new WaitForSeconds(laserDuration); // Wait till laser ends
+
+        if (earthRenderer != null && newEarthTexture != null)
+        {
+            Debug.Log("🌍 Earth texture changing...");
+            earthRenderer.material.mainTexture = newEarthTexture;
+        }
+        else
+        {
+            Debug.LogWarning("Missing earthRenderer or newEarthTexture!");
         }
     }
 

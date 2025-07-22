@@ -11,6 +11,7 @@ public class GameManager : MonoBehaviour
     public GameObject questionPanel;
     public GameObject aboutPanel;
     public GameObject videoPanel;
+    public GameObject endPanel; // 🔹 Add this via Inspector
 
     [Header("GameObjects")]
     public GameObject sun;
@@ -19,12 +20,18 @@ public class GameManager : MonoBehaviour
 
     [Header("Video")]
     public VideoPlayer introVideo;
+    public VideoClip startVideo;
+    public VideoClip endVideo;
+
+    private bool isPlayingEndVideo = false;
 
     void Start()
     {
+        introVideo.clip = startVideo;
         sun.SetActive(false);
         satellite.SetActive(false);
         earth.SetActive(false);
+        endPanel?.SetActive(false); // 🔹 hide endPanel
 
         homePanel.SetActive(true);
         questionPanel.SetActive(false);
@@ -47,6 +54,7 @@ public class GameManager : MonoBehaviour
 
         if (introVideo != null)
         {
+            introVideo.clip = startVideo;
             introVideo.isLooping = false;
             introVideo.Play();
         }
@@ -55,6 +63,22 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("Intro video not assigned.");
             ShowQuestions(); // fallback
         }
+    }
+
+    public void PlayEndVideo()
+    {
+        if (introVideo == null || endVideo == null) return;
+
+        introVideo.gameObject.SetActive(true);
+        videoPanel.SetActive(true);
+        questionPanel.SetActive(false);
+        sun.SetActive(false);
+        satellite.SetActive(false);
+        earth.SetActive(false);
+
+        isPlayingEndVideo = true;
+        introVideo.clip = endVideo;
+        introVideo.Play();
     }
 
     public void OnAboutButton()
@@ -91,7 +115,14 @@ public class GameManager : MonoBehaviour
 
     private void OnVideoEnd(VideoPlayer vp)
     {
-        ShowQuestions();
+        if (isPlayingEndVideo)
+        {
+            ShowEndPanel();
+        }
+        else
+        {
+            ShowQuestions();
+        }
     }
 
     private void ShowQuestions()
@@ -102,7 +133,15 @@ public class GameManager : MonoBehaviour
         satellite.SetActive(true);
         earth.SetActive(true);
 
-        // Start the quiz timer now
         FindObjectOfType<VRQuestionManager>()?.StartQuizTimer();
+    }
+
+    private void ShowEndPanel()
+    {
+        videoPanel.SetActive(false);
+        endPanel?.SetActive(true);
+        homePanel?.SetActive(false);
+        questionPanel?.SetActive(false);
+        aboutPanel?.SetActive(false);
     }
 }
